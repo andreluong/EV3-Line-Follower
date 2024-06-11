@@ -1,7 +1,25 @@
-# TODO: DEFINE PRAGMAS
+#!/usr/bin/env pybricks-micropython
+from pybricks.hubs import EV3Brick
+from pybricks.ev3devices import (Motor, TouchSensor, ColorSensor,
+                                 InfraredSensor, UltrasonicSensor, GyroSensor)
+from pybricks.parameters import Port, Stop, Direction, Button, Color
+from pybricks.tools import wait, StopWatch, DataLog
+from pybricks.robotics import DriveBase
+from pybricks.media.ev3dev import SoundFile, ImageFile
+
+# Initialize ojects
+ev3 = EV3Brick()
+leftMotor = Motor(Port.A)
+rightMotor = Motor(Port.D)
+colorSensor = ColorSensor(Port.1)
+ultrasonicSensor = UltrasonicSensor(Port.2)
+
+# Initialize drive base
+robot = DriveBase(leftMotor, rightMotor, wheel_diameter=55.5, axle_track=104)
 
 # Constants
 
+# General
 DEFAULT_SPEED = 20 # % speed
 COLOR_RANGE = 4 # Range for varying color
 BLUE_RANGE = 5 # Range for varying blue color
@@ -25,65 +43,51 @@ BLUE_BLUE = 19
 DIRECT_BLUE_GREEN = 9
 DIRECT_BLUE_BLUE = 11
 
-def setBothMotorSpeed(speed):
-	resetMotorEncoder(leftMotor)
-	resetMotorEncoder(rightMotor)
-	setMotorSpeed(leftMotor, speed)
-	setMotorSpeed(rightMotor, speed)
-
 def stopOnObstacle():
-	setMotorSpeed(leftMotor, 0)
-	setMotorSpeed(rightMotor, 0)
+	robot.straight(0)
 	sleep(1000)
-	playTone(2000, 200)
+    ev3.speaker.beep(2000, 200)
 	sleep(2000)
 
+# TODO:
 def setBothMotorTargets(left, right):
-	resetMotorEncoder(leftMotor)
-	resetMotorEncoder(rightMotor)
+	robot.drive(DEFAULT_SPEED, left)
 
-	setMotorTarget(leftMotor, left, DEFAULT_SPEED)
-	setMotorTarget(rightMotor, right, DEFAULT_SPEED)
-
-	waitUntilMotorStop(leftMotor)
-	waitUntilMotorStop(rightMotor)
+	# setMotorTarget(leftMotor, left, DEFAULT_SPEED)
+	# setMotorTarget(rightMotor, right, DEFAULT_SPEED)
 
 # Push obstacle away for ~10 cm
 def pushObstacle():
 	distanceToMove = 265
 
 	# Move forward to touch obstacle (~10 cm distance)
-	setBothMotorTargets(distanceToMove, distanceToMove)
-	sleep(40)
+	robot.drive(distanceToMove)
 
 	# Rotate robot to an angle
-	setBothMotorTargets(180, -180)
-	sleep(40)
+	robot.turn(180)
+	# setBothMotorTargets(180, -180)
 
 	# Move obstacle away at an angle (~10 cm distance)
-	setBothMotorTargets(distanceToMove, distanceToMove)
+	robot.drive(distanceToMove)
 
 	# Reverse back to original position behind angle
-	setBothMotorTargets(-distanceToMove - 5, -distanceToMove - 5)
-	sleep(40)
+	robot.drive(-distanceToMove - 5)
 
 	# Rotate robot back to original angle
-	setBothMotorTargets(-163, 163)
-	sleep(40)
-
-	# Reverse back to original position
-	setBothMotorTargets(-distanceToMove, -distanceToMove)
+	# setBothMotorTargets(-163, 163)
+	robot.turn(-163)
 
 # Turn around for ~360 degrees
 def turnAround():
-	setBothMotorTargets(380, -380) # Value based on current robot implementation
+	# setBothMotorTargets(380, -380) # Value based on current robot implementation
+	robot.turn(380) # Value based on current robot implementation
 
 # Scan left
 def scanLeft(redValue, greenValue, blueValue):
 	for i in range(0, 300, 10):
-		setBothMotorTargets(-SCAN_SPEED, SCAN_SPEED)
-		getColorRGB(colorSensor, redValue, greenValue, blueValue)
-		sleep(50)
+		robot.turn(-SCAN_SPEED)
+		(redValue, greenValue, blueValue) = colorSensor.rgb()
+		sleep(30)
 
 		if ((greenValue <= BLUE_GREEN + BLUE_RANGE & greenValue >= BLUE_GREEN - BLUE_RANGE
 			& blueValue <= BLUE_BLUE + COLOR_RANGE & blueValue >= BLUE_BLUE - COLOR_RANGE)
@@ -91,16 +95,13 @@ def scanLeft(redValue, greenValue, blueValue):
 			& blueValue <= GREEN_BLUE + COLOR_RANGE & blueValue >= GREEN_BLUE - COLOR_RANGE)):
 			# Exit loop and move
 			break
-		
-	resetMotorEncoder(leftMotor)
-	resetMotorEncoder(rightMotor)
 
 # Scan right
 def scanRight(redValue, greenValue, blueValue):
 	for i in range(0, 300, 10):
-		setBothMotorTargets(SCAN_SPEED, -SCAN_SPEED)
-		getColorRGB(colorSensor, redValue, greenValue, blueValue)
-		sleep(50)
+		robot.turn(SCAN_SPEED)
+		(redValue, greenValue, blueValue) = colorSensor.rgb()
+		sleep(30)
 
 		if ((greenValue <= BLUE_GREEN + BLUE_RANGE & greenValue >= BLUE_GREEN - BLUE_RANGE
 			& blueValue <= BLUE_BLUE + COLOR_RANGE & blueValue >= BLUE_BLUE - COLOR_RANGE)
@@ -108,9 +109,6 @@ def scanRight(redValue, greenValue, blueValue):
 			& blueValue <= GREEN_BLUE + COLOR_RANGE & blueValue >= GREEN_BLUE - COLOR_RANGE)):
 			# Exit loop and move
 			break
-	
-	resetMotorEncoder(leftMotor)
-	resetMotorEncoder(rightMotor)
 
 def performTask(greenValue, blueValue):
 	# Blue line task
@@ -138,37 +136,34 @@ def findPath(redValue, greenValue, blueValue):
 
 	# Indirect colored line
 	else:
-		setBothMotorSpeed(DEFAULT_SPEED)
+		robot.straight(DEFAULT_SPEED)
 
-def main():
-	leftPos, rightPos
-	distance
+# Main program
+while True:
+	# leftPos, rightPos
 	redValue, greenValue, blueValue
-
-	# Init
-	resetMotorEncoder(leftMotor)
-	resetMotorEncoder(rightMotor)
 
 	# Run
 	while (true):
 		# Color Sensor
-		getColorRGB(colorSensor, redValue, greenValue, blueValue)
+		# getColorRGB(colorSensor, redValue, greenValue, blueValue)
+		(redValue, greenValue, blueValue) = colorSensor.rgb()
 
 		# Ultrasonic Sensor - Stop robot based on distance
-		distance = getUSDistance(ultrasonicSensor)
+		distance = ultrasonicSensor.distance()
 		if (distance <= 10.0):
 			performTask(greenValue, blueValue)
 		else:
 			findPath(redValue, greenValue, blueValue)
 
 		# Display motor speeds
-		leftPos = getMotorEncoder(leftMotor)
-		rightPos = getMotorEncoder(rightMotor)
+		# leftPos = getMotorEncoder(leftMotor)
+		# rightPos = getMotorEncoder(rightMotor)
 
 		# Text
-		displayCenteredTextLine(1, "Red: %d", redValue)
-		displayCenteredTextLine(2, "Green: %d", greenValue)
-		displayCenteredTextLine(3, "Blue: %d", blueValue)
-		displayCenteredTextLine(4, "Distance: %f", distance)
-		displayCenteredTextLine(5, "Left motor: %d", leftPos)
-		displayCenteredTextLine(6, "Right motor: %d", rightPos)
+		# displayCenteredTextLine(1, "Red: %d", redValue)
+		# displayCenteredTextLine(2, "Green: %d", greenValue)
+		# displayCenteredTextLine(3, "Blue: %d", blueValue)
+		# displayCenteredTextLine(4, "Distance: %f", distance)
+		# displayCenteredTextLine(5, "Left motor: %d", leftPos)
+		# displayCenteredTextLine(6, "Right motor: %d", rightPos)
