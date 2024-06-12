@@ -18,8 +18,6 @@ ultrasonicSensor = UltrasonicSensor(Port.2)
 robot = DriveBase(leftMotor, rightMotor, wheel_diameter=55.5, axle_track=104)
 
 # Constants
-
-# General
 DEFAULT_SPEED = 20 # % speed
 COLOR_RANGE = 4 # Range for varying color
 BLUE_RANGE = 5 # Range for varying blue color
@@ -32,22 +30,24 @@ SURFACE_GREEN = 45
 SURFACE_BLUE = 24
 
 # Green thresholds
-GREEN_GREEN = 42
-GREEN_BLUE = 16
-DIRECT_GREEN_GREEN = 38
-DIRECT_GREEN_BLUE = 8
+GREEN_ON_GREEN = 42
+GREEN_ON_BLUE = 16
+DIRECT_GREEN_ON_GREEN = 38
+DIRECT_GREEN_ON_BLUE = 8
 
 # Blue thresholds
-BLUE_GREEN = 22
-BLUE_BLUE = 19
-DIRECT_BLUE_GREEN = 9
-DIRECT_BLUE_BLUE = 11
+BLUE_ON_GREEN = 22
+BLUE_ON_BLUE = 19
+DIRECT_BLUE_ON_GREEN = 9
+DIRECT_BLUE_ON_BLUE = 11
+
+
 
 def stopOnObstacle():
 	robot.straight(0)
-	sleep(1000)
+	wait(1000)
     ev3.speaker.beep(2000, 200)
-	sleep(2000)
+	wait(2000)
 
 # TODO:
 def setBothMotorTargets(left, right):
@@ -82,88 +82,70 @@ def turnAround():
 	# setBothMotorTargets(380, -380) # Value based on current robot implementation
 	robot.turn(380) # Value based on current robot implementation
 
+# Checks if robot is on blue line
+def isOnBlueLine(blueValue):
+	return (greenValue <= BLUE_ON_GREEN + BLUE_RANGE & greenValue >= BLUE_ON_GREEN - BLUE_RANGE
+		& blueValue <= BLUE_ON_BLUE + COLOR_RANGE & blueValue >= BLUE_ON_BLUE - COLOR_RANGE)
+
+# Checks if robot is on green line
+def isOnGreenLine(greenValue):
+	return (greenValue <= GREEN_ON_GREEN + GREEN_RANGE & greenValue >= GREEN_ON_GREEN - GREEN_RANGE
+		& blueValue <= GREEN_ON_BLUE + COLOR_RANGE & blueValue >= GREEN_ON_BLUE - COLOR_RANGE)
+
 # Scan left
 def scanLeft(redValue, greenValue, blueValue):
 	for i in range(0, 300, 10):
 		robot.turn(-SCAN_SPEED)
-		(redValue, greenValue, blueValue) = colorSensor.rgb()
-		sleep(30)
+		redValue, greenValue, blueValue = colorSensor.rgb()
+		wait(30)
 
-		if ((greenValue <= BLUE_GREEN + BLUE_RANGE & greenValue >= BLUE_GREEN - BLUE_RANGE
-			& blueValue <= BLUE_BLUE + COLOR_RANGE & blueValue >= BLUE_BLUE - COLOR_RANGE)
-			| (greenValue <= GREEN_GREEN + GREEN_RANGE & greenValue >= GREEN_GREEN - GREEN_RANGE
-			& blueValue <= GREEN_BLUE + COLOR_RANGE & blueValue >= GREEN_BLUE - COLOR_RANGE)):
-			# Exit loop and move
-			break
+		if (isOnGreenLine(greenValue) | isOnBlueLine(blueValue)):
+			break # Exit loop and move
 
 # Scan right
 def scanRight(redValue, greenValue, blueValue):
 	for i in range(0, 300, 10):
 		robot.turn(SCAN_SPEED)
-		(redValue, greenValue, blueValue) = colorSensor.rgb()
-		sleep(30)
+		redValue, greenValue, blueValue = colorSensor.rgb()
+		wait(30)
 
-		if ((greenValue <= BLUE_GREEN + BLUE_RANGE & greenValue >= BLUE_GREEN - BLUE_RANGE
-			& blueValue <= BLUE_BLUE + COLOR_RANGE & blueValue >= BLUE_BLUE - COLOR_RANGE)
-			| (greenValue <= GREEN_GREEN + GREEN_RANGE & greenValue >= GREEN_GREEN - GREEN_RANGE
-			& blueValue <= GREEN_BLUE + COLOR_RANGE & blueValue >= GREEN_BLUE - COLOR_RANGE)):
-			# Exit loop and move
-			break
+		if (isOnGreenLine(greenValue) | isOnBlueLine(blueValue)):
+			break # Exit loop and move
 
 def performTask(greenValue, blueValue):
 	# Blue line task
-	if (greenValue <= BLUE_GREEN + COLOR_RANGE & greenValue >= BLUE_GREEN - COLOR_RANGE
-		& blueValue <= BLUE_BLUE + COLOR_RANGE & blueValue >= BLUE_BLUE - COLOR_RANGE):
+	if (greenValue <= BLUE_ON_GREEN + COLOR_RANGE & greenValue >= BLUE_ON_GREEN - COLOR_RANGE
+		& blueValue <= BLUE_ON_BLUE + COLOR_RANGE & blueValue >= BLUE_ON_BLUE - COLOR_RANGE):
 		stopOnObstacle()
 		turnAround()
 	# Green line task
-	elif (greenValue <= GREEN_GREEN + COLOR_RANGE & greenValue >= GREEN_GREEN - COLOR_RANGE
-			& blueValue <= GREEN_BLUE + COLOR_RANGE & blueValue >= GREEN_BLUE - COLOR_RANGE):
+	elif (greenValue <= GREEN_ON_GREEN + COLOR_RANGE & greenValue >= GREEN_ON_GREEN - COLOR_RANGE
+			& blueValue <= GREEN_ON_BLUE + COLOR_RANGE & blueValue >= GREEN_ON_BLUE - COLOR_RANGE):
 		stopOnObstacle()
 		pushObstacle()
 	
 def findPath(redValue, greenValue, blueValue):
 	# Direct colored line
-	if ((greenValue <= DIRECT_GREEN_GREEN + DIRECT_COLOR_RANGE & greenValue >= DIRECT_GREEN_GREEN - DIRECT_COLOR_RANGE
-		& blueValue <= DIRECT_GREEN_BLUE + DIRECT_COLOR_RANGE & blueValue >= DIRECT_GREEN_BLUE - DIRECT_COLOR_RANGE)
-		| (greenValue <= DIRECT_BLUE_GREEN + DIRECT_COLOR_RANGE & greenValue >= DIRECT_BLUE_GREEN - DIRECT_COLOR_RANGE
-		& blueValue <= DIRECT_BLUE_BLUE + DIRECT_COLOR_RANGE & blueValue >= DIRECT_BLUE_BLUE - DIRECT_COLOR_RANGE)):
+	if ((greenValue <= DIRECT_GREEN_ON_GREEN + DIRECT_COLOR_RANGE & greenValue >= DIRECT_GREEN_ON_GREEN - DIRECT_COLOR_RANGE
+		& blueValue <= DIRECT_GREEN_ON_BLUE + DIRECT_COLOR_RANGE & blueValue >= DIRECT_GREEN_ON_BLUE - DIRECT_COLOR_RANGE)
+		| (greenValue <= DIRECT_BLUE_ON_GREEN + DIRECT_COLOR_RANGE & greenValue >= DIRECT_BLUE_ON_GREEN - DIRECT_COLOR_RANGE
+		& blueValue <= DIRECT_BLUE_ON_BLUE + DIRECT_COLOR_RANGE & blueValue >= DIRECT_BLUE_ON_BLUE - DIRECT_COLOR_RANGE)):
 		scanLeft(redValue, greenValue, blueValue)
 	# Surface
 	elif (greenValue <= SURFACE_GREEN + COLOR_RANGE & greenValue >= SURFACE_GREEN - COLOR_RANGE
 			& blueValue <= SURFACE_BLUE + COLOR_RANGE & blueValue >= SURFACE_BLUE - COLOR_RANGE):	
 		scanRight(redValue, greenValue, blueValue)
-
 	# Indirect colored line
 	else:
 		robot.straight(DEFAULT_SPEED)
 
 # Main program
 while True:
-	# leftPos, rightPos
-	redValue, greenValue, blueValue
+	# Color Sensor
+	redValue, greenValue, blueValue = colorSensor.rgb()
 
-	# Run
-	while (true):
-		# Color Sensor
-		# getColorRGB(colorSensor, redValue, greenValue, blueValue)
-		(redValue, greenValue, blueValue) = colorSensor.rgb()
-
-		# Ultrasonic Sensor - Stop robot based on distance
-		distance = ultrasonicSensor.distance()
-		if (distance <= 10.0):
-			performTask(greenValue, blueValue)
-		else:
-			findPath(redValue, greenValue, blueValue)
-
-		# Display motor speeds
-		# leftPos = getMotorEncoder(leftMotor)
-		# rightPos = getMotorEncoder(rightMotor)
-
-		# Text
-		# displayCenteredTextLine(1, "Red: %d", redValue)
-		# displayCenteredTextLine(2, "Green: %d", greenValue)
-		# displayCenteredTextLine(3, "Blue: %d", blueValue)
-		# displayCenteredTextLine(4, "Distance: %f", distance)
-		# displayCenteredTextLine(5, "Left motor: %d", leftPos)
-		# displayCenteredTextLine(6, "Right motor: %d", rightPos)
+	# Ultrasonic Sensor - Stop robot based on distance
+	if (ultrasonicSensor.distance() <= 10.0):
+		performTask(greenValue, blueValue)
+	else:
+		findPath(redValue, greenValue, blueValue)
