@@ -18,32 +18,65 @@ ultrasonicSensor = UltrasonicSensor(Port.S1)
 robot = DriveBase(leftMotor, rightMotor, wheel_diameter=55.5, axle_track=104)
 
 # Constants
-DEFAULT_SPEED = 30 # speed (mm/s)
+DEFAULT_SPEED = 60 # speed (mm/s)
 COLOR_RANGE = 4 # Range for varying color
 BLUE_RANGE = 5 # Range for varying blue color
-GREEN_RANGE = 7 # Range for varying green color
+GREEN_RANGE = 5 # Range for varying green color
 DIRECT_COLOR_RANGE = 3 # Range for varying direct color
 SCAN_SPEED = 8 # Speed for rotating robot to scan
 
-# NOTE: OTHER LAB ROOM VALUES
-
 # Surface thresholds
-SURFACE_GREEN = 47
-SURFACE_BLUE = 42
+SURFACE_GREEN = 42
+SURFACE_BLUE = 57
 
 # Green thresholds
-GREEN_GREEN = 46
-GREEN_BLUE = 28
-DIRECT_GREEN_GREEN = 47
-DIRECT_GREEN_BLUE = 15
+GREEN_GREEN = 37
+GREEN_BLUE = 37
+DIRECT_GREEN_GREEN = 34 # 32
+DIRECT_GREEN_BLUE = 15 # 28
 
 # Blue thresholds
-BLUE_GREEN = 27
-BLUE_BLUE = 33
-DIRECT_BLUE_GREEN = 16
-DIRECT_BLUE_BLUE = 29
+BLUE_GREEN = 30 
+BLUE_BLUE = 48
+DIRECT_BLUE_GREEN = 8 # 13	# 18
+DIRECT_BLUE_BLUE = 25 # 30  # 36
+
+def scanLeft():
+	for i in range(0, 300, 10):
+		robot.turn(-SCAN_SPEED)
+		redValue, greenValue, blueValue = colorSensor.rgb()
+		wait(50)
+
+		if ((greenValue <= 33 and blueValue <= 48) and (greenValue >= 20 and blueValue >= 38)) or ((greenValue <= 39 and blueValue <= 40) and (greenValue >= 35 and blueValue >= 29)):
+			break # Exit loop and move
 
 
+# Scan right
+def scanRight():
+	for i in range(0, 300, 10):
+		robot.turn(SCAN_SPEED)
+		redValue, greenValue, blueValue = colorSensor.rgb()
+		wait(50)
+
+		if ((greenValue <= 33 and blueValue <= 48) and (greenValue >= 20 and blueValue >= 38)) or ((greenValue <= 39 and blueValue <= 40) and (greenValue >= 35 and blueValue >= 29)):
+			break # Exit loop and move
+
+
+def pathFinder(greenValue, blueValue):
+    # surface
+	color = colorSensor.color()
+	if color == Color.BLUE or color == Color.GREEN:
+	# if greenValue >= 40 and blueValue >= 52:
+		scanRight()
+		ev3.speaker.beep(4000, 100)
+	elif (greenValue <= 33 and blueValue <= 48) or (greenValue <= 39 and blueValue <= 40):
+		robot.drive(40, 0)
+	elif (greenValue <= 20 and blueValue <= 38) or (greenValue <= 35 and blueValue <= 29):
+		scanLeft()
+  
+  
+  
+  
 
 def stopOnObstacle():
 	robot.straight(0)
@@ -51,42 +84,33 @@ def stopOnObstacle():
 	ev3.speaker.beep(2000, 200)
 	wait(2000)
 
-# TODO:
-def setBothMotorTargets(left, right):
-	robot.drive(DEFAULT_SPEED, left)
-
-	# setMotorTarget(leftMotor, left, DEFAULT_SPEED)
-	# setMotorTarget(rightMotor, right, DEFAULT_SPEED)
-
 # Push obstacle away for ~10 cm
 def pushObstacle():
-	distanceToMove = 265
+	TEN_CENTIMETERS = 110
+	TURN_ANGLE = 45
 
 	# Move forward to touch obstacle (~10 cm distance)
-	robot.straight(100)
+	robot.straight(TEN_CENTIMETERS)
 
 	# Rotate robot to an angle
-	robot.turn(180)
-	# setBothMotorTargets(180, -180)
+	robot.turn(TURN_ANGLE)
 
 	# Move obstacle away at an angle (~10 cm distance)
-	robot.straight(100)
+	robot.straight(TEN_CENTIMETERS)
 
 	# Reverse back to original position behind angle
-	robot.straight(-100)
+	robot.straight(-TEN_CENTIMETERS - 5)
 
 	# Rotate robot back to original angle
-	# setBothMotorTargets(-163, 163)
-	robot.turn(-163)
+	robot.turn(-TURN_ANGLE)
 
 # Turn around for ~360 degrees
 def turnAround():
-	# setBothMotorTargets(380, -380) # Value based on current robot implementation
-	robot.turn(380) # Value based on current robot implementation
+	robot.turn(400) # Value based on current robot implementation
 
 # Checks if robot is on blue line
 def isOnBlueLine(greenValue, blueValue):
-	return (greenValue <= BLUE_GREEN + BLUE_RANGE and greenValue >= BLUE_GREEN - BLUE_RANGE
+	return (greenValue <= BLUE_GREEN + COLOR_RANGE and greenValue >= BLUE_GREEN - COLOR_RANGE
 		and blueValue <= BLUE_BLUE + COLOR_RANGE and blueValue >= BLUE_BLUE - COLOR_RANGE)
 
 # Checks if robot is on green line
@@ -95,24 +119,26 @@ def isOnGreenLine(greenValue, blueValue):
 		and blueValue <= GREEN_BLUE + COLOR_RANGE and blueValue >= GREEN_BLUE - COLOR_RANGE)
 
 # Scan left
-def scanLeft(redValue, greenValue, blueValue):
-	for i in range(0, 300, 10):
-		robot.turn(-SCAN_SPEED)
-		redValue, greenValue, blueValue = colorSensor.rgb()
-		wait(30)
+# def scanLeft():
+# 	for i in range(0, 300, 10):
+# 		robot.turn(-SCAN_SPEED)
+# 		redValue, greenValue, blueValue = colorSensor.rgb()
+# 		wait(50)
 
-		if (isOnGreenLine(greenValue, blueValue) or isOnBlueLine(greenValue, blueValue)):
-			break # Exit loop and move
+# 		if (isOnGreenLine(greenValue, blueValue) or isOnBlueLine(greenValue, blueValue)):
+# 			robot.drive(DEFAULT_SPEED, 0)
+# 			break # Exit loop and move
 
-# Scan right
-def scanRight(redValue, greenValue, blueValue):
-	for i in range(0, 300, 10):
-		robot.turn(SCAN_SPEED)
-		redValue, greenValue, blueValue = colorSensor.rgb()
-		wait(30)
+# # Scan right
+# def scanRight():
+# 	for i in range(0, 300, 10):
+# 		robot.turn(SCAN_SPEED)
+# 		redValue, greenValue, blueValue = colorSensor.rgb()
+# 		wait(50)
 
-		if (isOnGreenLine(greenValue, blueValue) or isOnBlueLine(greenValue, blueValue)):
-			break # Exit loop and move
+# 		if (isOnGreenLine(greenValue, blueValue) or isOnBlueLine(greenValue, blueValue)):
+# 			robot.drive(DEFAULT_SPEED, 0)
+# 			break # Exit loop and move
 
 def performTask(greenValue, blueValue):
 	# Blue line task
@@ -121,7 +147,7 @@ def performTask(greenValue, blueValue):
 		stopOnObstacle()
 		turnAround()
 	# Green line task
-	elif (greenValue <= GREEN_GREEN + COLOR_RANGE and greenValue >= GREEN_GREEN - COLOR_RANGE
+	elif (greenValue <= GREEN_GREEN + GREEN_RANGE and greenValue >= GREEN_GREEN - GREEN_RANGE
 			and blueValue <= GREEN_BLUE + COLOR_RANGE and blueValue >= GREEN_BLUE - COLOR_RANGE):
 		stopOnObstacle()
 		pushObstacle()
@@ -132,11 +158,11 @@ def findPath(redValue, greenValue, blueValue):
 		and blueValue <= DIRECT_GREEN_BLUE + DIRECT_COLOR_RANGE and blueValue >= DIRECT_GREEN_BLUE - DIRECT_COLOR_RANGE)
 		or (greenValue <= DIRECT_BLUE_GREEN + DIRECT_COLOR_RANGE and greenValue >= DIRECT_BLUE_GREEN - DIRECT_COLOR_RANGE
 		and blueValue <= DIRECT_BLUE_BLUE + DIRECT_COLOR_RANGE and blueValue >= DIRECT_BLUE_BLUE - DIRECT_COLOR_RANGE)):
-		scanLeft(redValue, greenValue, blueValue)
+		scanLeft()
 	# Surface
 	elif (greenValue <= SURFACE_GREEN + COLOR_RANGE and greenValue >= SURFACE_GREEN - COLOR_RANGE
 			and blueValue <= SURFACE_BLUE + COLOR_RANGE and blueValue >= SURFACE_BLUE - COLOR_RANGE):	
-		scanRight(redValue, greenValue, blueValue)
+		scanRight()
 	# Indirect colored line
 	else:
 		robot.drive(DEFAULT_SPEED, 0)
@@ -147,15 +173,21 @@ while True:
 	redValue, greenValue, blueValue = colorSensor.rgb()
 
 	# Check colours
-	# print("Red: ", redValue)
-	# print("Green: ", greenValue)
-	# print("Blue: ", blueValue)
-	# print("")
+	print("Red: ", redValue)
+	print("Green: ", greenValue)
+	print("Blue: ", blueValue)
+	print("")
+ 
+	# pathFinder(greenValue, blueValue)
+ 
+	robot.drive(40, 50)
 
+	# robot.drive(20, 0)
 	# Ultrasonic Sensor - Stop robot based on distance
-	# if (ultrasonicSensor.distance() <= 10.0):
+	# if (ultrasonicSensor.distance() <= 100.0):
 	# 	performTask(greenValue, blueValue)
 	# else:
 	# 	findPath(redValue, greenValue, blueValue)
 
-	findPath(redValue, greenValue, blueValue)
+	# robot.drive(10, 0)
+	# findPath(redValue, greenValue, blueValue)

@@ -13,12 +13,13 @@ leftMotor = Motor(Port.D)
 rightMotor = Motor(Port.A)
 colorSensor = ColorSensor(Port.S4)
 ultrasonicSensor = UltrasonicSensor(Port.S1)
+servoMotor = Motor(Port.B)
 
 # Initialize drive base
 robot = DriveBase(leftMotor, rightMotor, wheel_diameter=55.5, axle_track=104)
 
 # Constants
-DEFAULT_SPEED = 20 # % speed
+DEFAULT_SPEED = 60 # % speed
 COLOR_RANGE = 4 # Range for varying color
 BLUE_RANGE = 5 # Range for varying blue color
 GREEN_RANGE = 7 # Range for varying green color
@@ -37,23 +38,21 @@ sumOfErrors = 0
 
 
 
-# NOTE: OTHER LAB ROOM VALUES
-
 # Surface thresholds
-SURFACE_GREEN = 47
-SURFACE_BLUE = 42
+SURFACE_GREEN = 42
+SURFACE_BLUE = 57
 
 # Green thresholds
-GREEN_GREEN = 46
-GREEN_BLUE = 28
-DIRECT_GREEN_GREEN = 47
-DIRECT_GREEN_BLUE = 15
+GREEN_GREEN = 37
+GREEN_BLUE = 37
+DIRECT_GREEN_GREEN = 34 # 32
+DIRECT_GREEN_BLUE = 15 # 28
 
 # Blue thresholds
-BLUE_GREEN = 27
-BLUE_BLUE = 33
-DIRECT_BLUE_GREEN = 16
-DIRECT_BLUE_BLUE = 29
+BLUE_GREEN = 30 
+BLUE_BLUE = 48
+DIRECT_BLUE_GREEN = 8 # 13	# 18
+DIRECT_BLUE_BLUE = 25 # 30  # 36
 
 
 
@@ -67,8 +66,17 @@ def isOnGreenLine(greenValue, blueValue):
 	return (greenValue <= GREEN_GREEN + COLOR_RANGE and greenValue >= GREEN_GREEN - COLOR_RANGE
 		and blueValue <= GREEN_BLUE + COLOR_RANGE and blueValue >= GREEN_BLUE - COLOR_RANGE)
 
+def isOnDirectBlueLine(greenValue, blueValue):
+    return (greenValue <= DIRECT_GREEN_GREEN + DIRECT_COLOR_RANGE and greenValue >= DIRECT_GREEN_GREEN - DIRECT_COLOR_RANGE
+		and blueValue <= DIRECT_GREEN_BLUE + DIRECT_COLOR_RANGE and blueValue >= DIRECT_GREEN_BLUE - DIRECT_COLOR_RANGE)
 
+def isonDirectGreenLine(greenValue, blueValue):
+    return  (greenValue <= DIRECT_BLUE_GREEN + DIRECT_COLOR_RANGE and greenValue >= DIRECT_BLUE_GREEN - DIRECT_COLOR_RANGE
+		and blueValue <= DIRECT_BLUE_BLUE + DIRECT_COLOR_RANGE and blueValue >= DIRECT_BLUE_BLUE - DIRECT_COLOR_RANGE)
 
+def isOnSurface(greenValue, blueValue):
+    return (greenValue <= SURFACE_GREEN + COLOR_RANGE and greenValue >= SURFACE_GREEN - COLOR_RANGE
+        and blueValue <= SURFACE_BLUE + COLOR_RANGE and blueValue >= SURFACE_BLUE - COLOR_RANGE)
 
 
 # Calculates the error (deviation from center of green line)
@@ -81,14 +89,20 @@ def calculateError():
     print("Blue: ", blueValue)
     print("")
 
-    if (isOnGreenLine(greenValue, blueValue)):
-        error = (GREEN_GREEN - greenValue) / COLOR_RANGE
+    if isonDirectGreenLine(greenValue, blueValue):
+        error = -(30 + DIRECT_GREEN_GREEN - greenValue)
+        print("hit direct green")
+    elif isOnDirectBlueLine(greenValue, blueValue):
+        error = -(30 + DIRECT_BLUE_BLUE - blueValue)
+        print("hit direct blue")
+    elif (isOnGreenLine(greenValue, blueValue)):
+        error = 0
         print("hit green")
     elif (isOnBlueLine(greenValue, blueValue)):
-        error = (BLUE_BLUE - blueValue) / COLOR_RANGE
+        error = 0
         print("hit blue")
     else:
-        error = 0
+        error = 50
 	
     return error
 
@@ -100,6 +114,12 @@ def calculatePID(error, previousError):
     return pidValue, integral
 
 while True:
+    # if (ultrasonicSensor.distance() <= 100.0):
+        # servoMotor.run_time(-1500, 700, then=Stop.HOLD, wait=True)
+    
+    
+    redValue, greenValue, blueValue = colorSensor.rgb()
+     
     error = calculateError()
 
     print("Error: ", error)
@@ -113,13 +133,14 @@ while True:
     leftSpeed = DEFAULT_SPEED + pidValue
     rightSpeed = DEFAULT_SPEED - pidValue
 
+
     # Ensure speeds are within valid range
     leftSpeed = max(min(leftSpeed, MOTOR_SPEED_LIMIT), -MOTOR_SPEED_LIMIT)
     rightSpeed = max(min(rightSpeed, MOTOR_SPEED_LIMIT), -MOTOR_SPEED_LIMIT)
 
-    robot.drive(10, 0)
-    wait(3000)
+    # robot.drive(10, 0)
+    leftMotor.run(leftSpeed)
+    rightMotor.run(rightSpeed)
  
     print("")
     
-    # robot.drive(DEFAULT_SPEED, leftSpeed, rightSpeed)
