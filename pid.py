@@ -17,6 +17,7 @@ servoMotor = Motor(Port.B)
 
 # Initialize drive base
 robot = DriveBase(leftMotor, rightMotor, wheel_diameter=55.5, axle_track=104)
+robot.settings(250, 250, 700, 700)
 
 # Constants
 DEFAULT_SPEED = 200 # % speed
@@ -130,16 +131,13 @@ def stopOnObstacle():
 # Push obstacle
 def pushObstacle():
     robot.straight(100)
-    # leftMotor.run_time(DEFAULT_SPEED, 800)
-    # rightMotor.run_time(DEFAULT_SPEED, 800)
-    servoMotor.run_time(-1500, 700, then=Stop.HOLD, wait=True)
+    robot.turn(-10)
+    servoMotor.run_time(-1500, 710, then=Stop.HOLD, wait=True)
     robot.stop()
 
 # Turn around for ~180 degrees
 def turnAround():
     robot.turn(180)
-    # leftMotor.run_target(200, 180)
-    # rightMotor.run_target(200, -180)
     robot.stop()
 
 while True:
