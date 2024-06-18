@@ -18,7 +18,7 @@ robot = DriveBase(leftMotor, rightMotor, wheel_diameter=55.5, axle_track=104.5)
 robot.settings(250, 250, 500, 500)
 
 # Constants
-DEFAULT_SPEED = 180 # % speed
+DEFAULT_SPEED = 150 # % speed
 COLOR_RANGE = 9 # Range for varying color
 DIRECT_COLOR_RANGE = 5 # Range for varying direct color
 
@@ -86,10 +86,10 @@ def calculateError(redValue, greenValue, blueValue):
     # print("")
 
     if isOnDirectGreenLine(greenValue, blueValue):
-        error = -42 - redValue - DIRECT_GREEN_RED / 2
+        error = -100 - redValue - DIRECT_GREEN_RED / 2
         # print("hit direct green")
     elif isOnDirectBlueLine(greenValue, blueValue):
-        error = -42 - redValue - DIRECT_BLUE_RED / 2
+        error = -100 - redValue - DIRECT_BLUE_RED / 2
         # print("hit direct blue")
     elif (isOnGreenLine(greenValue, blueValue)):
         error = redValue - GREEN_RED
