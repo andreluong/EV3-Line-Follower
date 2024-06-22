@@ -18,7 +18,7 @@ robot = DriveBase(leftMotor, rightMotor, wheel_diameter=55.5, axle_track=104.5)
 robot.settings(250, 250, 500, 500)
 
 # Constants
-DEFAULT_SPEED = 180 # % speed
+DEFAULT_SPEED = 180 # mm/s
 COLOR_RANGE = 9 # Range for varying color
 DIRECT_COLOR_RANGE = 5 # Range for varying direct color
 
@@ -43,17 +43,15 @@ DIRECT_BLUE_RED = 4
 DIRECT_BLUE_GREEN = 7 # 13	# 18
 DIRECT_BLUE_BLUE = 25 # 30  # 36
 
-
 # PID
-Kp = 6.75 # Proportional gain constant (adjust for responsiveness) 
-Ki = 0.005  # Integral gain constant (adjust for smoothness)
-Kd = 13.5 # Derivative gain constant (adjust for stability)
+Kp = 6.75 # Proportional gain 
+Ki = 0.005  # Integral gain
+Kd = 13.5 # Derivative gain
 MOTOR_SPEED_LIMIT = 250 # mm/s
 
 # Variables
 previousError = 0
 sumOfErrors = 0
-
 
 # Checks if robot is on blue line
 def isOnBlueLine(greenValue, blueValue):
@@ -78,25 +76,19 @@ def isOnSurface(greenValue, blueValue):
         and blueValue <= SURFACE_BLUE + COLOR_RANGE and blueValue >= SURFACE_BLUE - COLOR_RANGE)
 
 
-# Calculates the error (deviation from center of green line)
+# Calculates the error
 def calculateError(redValue, greenValue, blueValue):    
-    # print("Red: ", redValue)
-    # print("Green: ", greenValue)
-    # print("Blue: ", blueValue)
-    # print("")
-
+    # Helps the robot turn right appropriately
+    RIGHT_TURN_CONSTANT = -42
+    
     if isOnDirectGreenLine(greenValue, blueValue):
-        error = -42 - redValue - DIRECT_GREEN_RED / 2
-        # print("hit direct green")
+        error = RIGHT_TURN_CONSTANT - redValue - DIRECT_GREEN_RED / 2
     elif isOnDirectBlueLine(greenValue, blueValue):
-        error = -42 - redValue - DIRECT_BLUE_RED / 2
-        # print("hit direct blue")
+        error = RIGHT_TURN_CONSTANT - redValue - DIRECT_BLUE_RED / 2
     elif (isOnGreenLine(greenValue, blueValue)):
         error = redValue - GREEN_RED
-        # print("hit green")
     elif (isOnBlueLine(greenValue, blueValue)):
         error = redValue - BLUE_RED
-        # print("hit blue")
     else:
         error = redValue - SURFACE_RED / 2
 	
@@ -134,32 +126,30 @@ def performTask(greenValue, blueValue):
     else:
         turnAround()
 
+def findPath(redValue, greenValue, blueValue):
+    error = calculateError(redValue, greenValue, blueValue)
+
+    pidValue, sumOfErrors = calculatePID(error, previousError)
+    previousError = error
+
+    # Set motor speeds with adjustment
+    leftSpeed = DEFAULT_SPEED + pidValue
+    rightSpeed = DEFAULT_SPEED - pidValue
+
+    # Ensure speeds are within valid range
+    leftSpeed = max(min(leftSpeed, MOTOR_SPEED_LIMIT), -MOTOR_SPEED_LIMIT)
+    rightSpeed = max(min(rightSpeed, MOTOR_SPEED_LIMIT), -MOTOR_SPEED_LIMIT)
+
+    leftMotor.run(leftSpeed)
+    rightMotor.run(rightSpeed)
 
 
+# Run the robot
 while True:
     redValue, greenValue, blueValue = colorSensor.rgb()
         
-    distance = ultrasonicSensor.distance()
-    # print("distance:", distance)
-
-    if (distance <= 100.0):
+    # Check for obstacles within 10 cm
+    if (ultrasonicSensor.distance() <= 100.0):
         performTask(greenValue, blueValue)
     else:
-        error = calculateError(redValue, greenValue, blueValue)
-
-        pidValue, sumOfErrors = calculatePID(error, previousError)
-        previousError = error
-
-        # Set motor speeds with adjustment
-        leftSpeed = DEFAULT_SPEED + pidValue
-        rightSpeed = DEFAULT_SPEED - pidValue
-
-        # Ensure speeds are within valid range
-        leftSpeed = max(min(leftSpeed, MOTOR_SPEED_LIMIT), -MOTOR_SPEED_LIMIT)
-        rightSpeed = max(min(rightSpeed, MOTOR_SPEED_LIMIT), -MOTOR_SPEED_LIMIT)
-
-        leftMotor.run(leftSpeed)
-        rightMotor.run(rightSpeed)
-
-        # print("")
-        
+        findPath(redValue, greenValue, blueValue)        
